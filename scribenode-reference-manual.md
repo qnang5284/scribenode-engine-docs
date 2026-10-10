@@ -23,3 +23,64 @@ When this method is triggered, the engine executes the following lifecycle opera
 6. **Session Return:** The active session is returned to the runtime environment. The host application can then call `session.current()` to render the active dialogue line, and `session.choose(choiceId)` to process player input and branch the state.
 
 > ⚠️ **Important Architecture Note:** Dialogue files are static and are not watched or hot-reloaded post-initialization. Any real-time modifications to the narrative files require an explicit invocation of a new `DialogueEngine.open()` routine. The runtime state managed inside `SessionContext` is transient and is never serialized back into the source JSON script.
+
+## 2. Script Syntax & Schema Specifications
+
+ScribeNode engines ingest custom data structures formatted in standard JSON. Below is a production-ready template demonstrating a standard dialogue node featuring branching choices, routing wrappers, and speaker definition variables.
+
+### Sample Narrative File (`inn_greeting.json`)
+
+```json
+{
+  "meta": {
+    "id": "inn_greeting",
+    "start": "inn.entrance"
+  },
+  "nodes": [
+    {
+      "id": "inn.entrance",
+      "speaker": "marta",
+      "text": "Evening. You look like you have been on the road.",
+      "choices": [
+        {
+          "id": "ask_room",
+          "text": "I need a room.",
+          "routing": { "next": "inn.room" }
+        },
+        {
+          "id": "ask_rumor",
+          "text": "Heard anything strange lately?",
+          "routing": { "next": "inn.rumor" }
+        }
+      ]
+    },
+    {
+      "id": "inn.room",
+      "speaker": "marta",
+      "text": "Two silver for the night. Stable is extra.",
+      "choices": []
+    },
+    {
+      "id": "inn.rumor",
+      "speaker": "marta",
+      "text": "Travelers say the north road is watched after dark.",
+      "choices": []
+    }
+  ]
+}
+```
+
+### Schema Schema Reference Matrix
+
+| Object Property | Required | Data Type | Description & System Behavior |
+| :--- | :---: | :---: | :--- |
+| `meta.id` | **Yes** | String | Global unique identifier for this specific narrative script. |
+| `meta.start` | No | String | Target node ID to load upon initialization. Defaults to `nodes[0].id` if absent. |
+| `nodes[].id` | **Yes** | String | Contextual unique identifier for a dialogue node inside this file scope. |
+| `nodes[].speaker`| **Yes** | String | Speaker entity key, dynamically resolved via the system's `SessionContext`. |
+| `nodes[].text` | **Yes** | String | The actual text localized and displayed to the end-user environment. |
+| `nodes[].choices`| **Yes** | Array | List of choice objects. An empty array signifies a terminal node branch. |
+| `choices[].id` | **Yes** | String | Stable parameter token passed back to execution via `session.choose()`. |
+| `choices[].text` | **Yes** | String | The UI visual selection label presented directly to the user interface. |
+| `choices[].routing.next` | **Yes** | String | The explicit node target ID to evaluate and transition to upon choice selection. |
+
